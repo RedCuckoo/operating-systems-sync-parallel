@@ -1,7 +1,5 @@
 package com.momotenko.os.lab1;
 
-import com.momotenko.os.lab1.manager.first.ServerManager;
-
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -21,7 +19,7 @@ public class Server {
 
     private List<Double> result;
 
-    public Server(String hostname,int portF, int portG) {
+    public Server(String hostname, int portF, int portG) {
         result = new ArrayList<>(Arrays.asList(new Double[2]));
 
         try {
@@ -47,58 +45,58 @@ public class Server {
 
     public void run() {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
-        Future<?> future = executorService.submit(()->{
-                try {
-                    while (running) {
-                        selector.select();
-                        Set<SelectionKey> selectedKeys = selector.selectedKeys();
-                        Iterator<SelectionKey> iterator = selectedKeys.iterator();
+        Future<?> future = executorService.submit(() -> {
+            try {
+                while (running) {
+                    selector.select();
 
-                        while (iterator.hasNext()) {
-                            key = iterator.next();
+                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                    Iterator<SelectionKey> iterator = selectedKeys.iterator();
 
-                            if (key.isAcceptable()) {
-                                System.out.println(key.channel());
+                    while (iterator.hasNext()) {
+                        key = iterator.next();
 
-                                if (key.channel().equals(serverSocketChannelF)) {
-                                    register(selector, serverSocketChannelF);
-                                } else if (key.channel().equals(serverSocketChannelG)) {
-                                    register(selector, serverSocketChannelG);
-                                }
+                        if (key.isAcceptable()) {
+                            System.out.println(key.channel());
+
+                            if (key.channel().equals(serverSocketChannelF)) {
+                                register(selector, serverSocketChannelF);
+                            } else if (key.channel().equals(serverSocketChannelG)) {
+                                register(selector, serverSocketChannelG);
                             }
-
-                            if (key.isWritable()){
-                                boolean f = true;
-
-                                if (serverSocketChannelG.getLocalAddress()
-                                        .equals(((SocketChannel)key.channel()).getLocalAddress())){
-                                    f = false;
-                                }
-
-                                sendX(buffer, f);
-                            }
-
-                            iterator.remove();
                         }
+
+                        if (key.isWritable()) {
+                            boolean f = true;
+
+                            if (serverSocketChannelG.getLocalAddress()
+                                    .equals(((SocketChannel) key.channel()).getLocalAddress())) {
+                                f = false;
+                            }
+
+                            sendX(buffer, f);
+                        }
+
+                        iterator.remove();
                     }
-                } catch (IOException e) {
-                    System.out.println("Client disconnected");
-                    //e.printStackTrace();
                 }
+            } catch (IOException e) {
+                System.out.println("Client disconnected");
+            }
         });
 
         executorService.shutdown();
     }
 
-    public void stop(){
+    public void stop() {
         running = false;
     }
 
-    public void sendX(ByteBuffer buffer, boolean f) throws IOException {
+    public boolean sendX(ByteBuffer buffer, boolean f) throws IOException {
         SocketChannel client = (SocketChannel) key.channel();
 
         buffer.clear();
-        buffer.putInt(1);
+        buffer.putInt(0);
         buffer.rewind();
         client.write(buffer);
 
@@ -108,16 +106,44 @@ public class Server {
         buffer.rewind();
         Double res = buffer.getDouble();
 
-        if (f){
-            result.add(0,res);
-            System.out.println("f: " + res);
-        }
-        else{
-            result.add(1, res);
-            System.out.println("g: " + res);
+        synchronized (result) {
+            if (f) {
+                result.add(0, res);
+            } else {
+                result.add(1, res);
+            }
         }
 
         key.channel().close();
+
+        if (res == 0.0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public synchronized boolean resultsReady() {
+        synchronized (result) {
+            if (result.get(0) != null && result.get(0) == 0){
+                return true;
+            }
+            else if (result.get(1) != null && result.get(1) == 0){
+                return true;
+            }
+
+            return result.get(0) != null && result.get(1) != null;
+        }
+    }
+
+    public synchronized List<Double> getResult() {
+        synchronized (result){
+            return result;
+        }
+    }
+
+    public boolean getRunning(){
+        return running;
     }
 
     protected void register(Selector selector, ServerSocketChannel serverSocketChannel) throws IOException {
