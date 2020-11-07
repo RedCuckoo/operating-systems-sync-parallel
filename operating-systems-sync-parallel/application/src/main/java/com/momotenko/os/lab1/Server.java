@@ -1,6 +1,6 @@
 package com.momotenko.os.lab1;
 
-import com.momotenko.os.lab1.controller.ServerController;
+import com.momotenko.os.lab1.manager.first.ServerManager;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -20,11 +20,6 @@ public class Server {
     private volatile boolean running = false;
 
     private List<Double> result;
-
-    public static void main(String[] argc) throws IOException {
-        ServerController controller = new ServerController("localhost", 4040, 4050);
-        controller.run();
-    }
 
     public Server(String hostname,int portF, int portG) {
         result = new ArrayList<>(Arrays.asList(new Double[2]));
@@ -53,7 +48,6 @@ public class Server {
     public void run() {
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         Future<?> future = executorService.submit(()->{
-           // while(running) {
                 try {
                     while (running) {
                         selector.select();
@@ -91,7 +85,6 @@ public class Server {
                     System.out.println("Client disconnected");
                     //e.printStackTrace();
                 }
-         //   }
         });
 
         executorService.shutdown();
