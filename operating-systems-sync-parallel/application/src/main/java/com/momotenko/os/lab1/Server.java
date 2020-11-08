@@ -1,41 +1,52 @@
 package com.momotenko.os.lab1;
 
+import com.momotenko.os.lab1.utils.Pair;
+
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 public class Server {
     private Selector selector;
     private ServerSocketChannel serverSocketChannelF;
     private ServerSocketChannel serverSocketChannelG;
-    private ByteBuffer buffer;
-    private volatile SelectionKey key;
-    private volatile boolean running = false;
+    Pair<InetSocketAddress, Boolean> fWrote;
+    Pair<InetSocketAddress, Boolean> gWrote;
 
-    private List<Double> result;
+    private ByteBuffer buffer;
+    private SelectionKey key;
+
+    int count;
+
+    private List<Pair<Double, Long>> result;
+
+    Process compileF;
+    Process compileG;
 
     public Server(String hostname, int portF, int portG) {
-        result = new ArrayList<>(Arrays.asList(new Double[2]));
+        result = new ArrayList<>();
+        result.add(null);
+        result.add(null);
 
         try {
             selector = Selector.open();
             serverSocketChannelF = ServerSocketChannel.open();
-            serverSocketChannelF.bind(new InetSocketAddress(hostname, portF));
+            fWrote = new Pair<>(new InetSocketAddress(hostname, portF), false);
+            serverSocketChannelF.bind(fWrote.getLeft());
             serverSocketChannelF.configureBlocking(false);
             serverSocketChannelF.register(selector, SelectionKey.OP_ACCEPT);
 
             serverSocketChannelG = ServerSocketChannel.open();
-            serverSocketChannelG.bind(new InetSocketAddress(hostname, portG));
+            gWrote = new Pair<>(new InetSocketAddress(hostname, portG), false);
+            serverSocketChannelG.bind(gWrote.getLeft());
             serverSocketChannelG.configureBlocking(false);
             serverSocketChannelG.register(selector, SelectionKey.OP_ACCEPT);
 
-            buffer = ByteBuffer.allocate(1024);
-            running = true;
+            buffer = ByteBuffer.allocate(Integer.BYTES + Double.BYTES + Long.BYTES);
+
+            count = 0;
         } catch (ClosedChannelException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -43,107 +54,138 @@ public class Server {
         }
     }
 
-    public void run() {
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
-        Future<?> future = executorService.submit(() -> {
-            try {
-                while (running) {
-                    selector.select();
+    public void startClients() {
+        String outFFolder =
+                ".." + File.separator +
+                        ".." + File.separator +
+                        "f_function" + File.separator +
+                        "target" + File.separator;
 
-                    Set<SelectionKey> selectedKeys = selector.selectedKeys();
-                    Iterator<SelectionKey> iterator = selectedKeys.iterator();
+        String outGFolder =
+                ".." + File.separator +
+                        ".." + File.separator +
+                        "g_function" + File.separator +
+                        "target" + File.separator;
 
-                    while (iterator.hasNext()) {
-                        key = iterator.next();
+        String functionFCP =
+                "com.momotenko.os.lab1.FunctionF";
 
-                        if (key.isAcceptable()) {
-                            System.out.println(key.channel());
+        String functionGCP =
+                "com.momotenko.os.lab1.FunctionG";
 
-                            if (key.channel().equals(serverSocketChannelF)) {
-                                register(selector, serverSocketChannelF);
-                            } else if (key.channel().equals(serverSocketChannelG)) {
-                                register(selector, serverSocketChannelG);
-                            }
+        try {
+            compileF = new ProcessBuilder("java", "-cp",
+                    outFFolder + "full-f_function-1.0.jar",
+                    functionFCP).start();
+
+            compileG = new ProcessBuilder("java", "-cp",
+                    outGFolder + "full-g_function-1.0.jar",
+                    functionGCP).start();
+        } catch (IOException e) {
+            System.out.println("Failed to start client");
+        }
+    }
+
+    private void stopClients() {
+        compileF.destroy();
+        compileG.destroy();
+    }
+
+    public void run(int x) {
+        startClients();
+
+        try {
+            while (count != 2) {
+                selector.select();
+
+                Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                Iterator<SelectionKey> iterator = selectedKeys.iterator();
+
+                while (iterator.hasNext()) {
+                    key = iterator.next();
+
+                    if (key.isAcceptable()) {
+                        if (key.channel().equals(serverSocketChannelF)) {
+                            register(selector, serverSocketChannelF);
+                        } else if (key.channel().equals(serverSocketChannelG)) {
+                            register(selector, serverSocketChannelG);
                         }
-
-                        if (key.isWritable()) {
-                            boolean f = true;
-
-                            if (serverSocketChannelG.getLocalAddress()
-                                    .equals(((SocketChannel) key.channel()).getLocalAddress())) {
-                                f = false;
-                            }
-
-                            sendX(buffer, f);
-                        }
-
-                        iterator.remove();
                     }
+
+                    if (key.isWritable()) {
+                        SocketChannel client = (SocketChannel) key.channel();
+
+                        if (!fWrote.getRight() && fWrote.getLeft().equals(client.getLocalAddress())) {
+                            sendX(client, x);
+                            fWrote.setRight(true);
+                        }
+
+                        if (!gWrote.getRight() && gWrote.getLeft().equals(client.getLocalAddress())) {
+                            sendX(client, x);
+                            gWrote.setRight(true);
+                        }
+
+                        boolean f = true;
+
+                        if (gWrote.getLeft()
+                                .equals(((SocketChannel) key.channel()).getLocalAddress())) {
+                            f = false;
+                        }
+
+                        if (!readX(client, x, f)) {
+                            stopClients();
+                            return;
+                        }
+                    }
+
+                    iterator.remove();
                 }
-            } catch (IOException e) {
-                System.out.println("Client disconnected");
             }
-        });
-
-        executorService.shutdown();
-    }
-
-    public void stop() {
-        running = false;
-    }
-
-    public boolean sendX(ByteBuffer buffer, boolean f) throws IOException {
-        SocketChannel client = (SocketChannel) key.channel();
-
-        buffer.clear();
-        buffer.putInt(0);
-        buffer.rewind();
-        client.write(buffer);
-
-        buffer.clear();
-
-        client.read(buffer);
-        buffer.rewind();
-        Double res = buffer.getDouble();
-
-        synchronized (result) {
-            if (f) {
-                result.add(0, res);
-            } else {
-                result.add(1, res);
-            }
+        } catch (IOException e) {
+            System.out.println("Client disconnected");
+            e.printStackTrace();
         }
 
-        key.channel().close();
+        stopClients();
+    }
 
-        if (res == 0.0) {
-            return false;
+    public void sendX(SocketChannel client, int x) throws IOException {
+        buffer.clear();
+        buffer.putInt(x);
+        buffer.rewind();
+        client.write(buffer);
+    }
+
+    private boolean readX(SocketChannel client, int x, boolean f) throws IOException {
+        buffer.clear();
+        client.read(buffer);
+        buffer.rewind();
+
+        Integer assertRes = buffer.getInt();
+        Double res = buffer.getDouble();
+        Long time = buffer.getLong();
+
+        if (assertRes.equals(((InetSocketAddress) client.getLocalAddress()).getPort())) {
+            ++count;
+
+            if (f) {
+                result.set(0, new Pair(res, time));
+            } else {
+                result.set(1, new Pair(res, time));
+            }
+
+            key.channel().close();
+
+            if (res == 0.0) {
+                return false;
+            }
         }
 
         return true;
     }
 
-    public synchronized boolean resultsReady() {
-        synchronized (result) {
-            if (result.get(0) != null && result.get(0) == 0){
-                return true;
-            }
-            else if (result.get(1) != null && result.get(1) == 0){
-                return true;
-            }
-
-            return result.get(0) != null && result.get(1) != null;
-        }
-    }
-
-    public synchronized List<Double> getResult() {
-        synchronized (result){
-            return result;
-        }
-    }
-
-    public boolean getRunning(){
-        return running;
+    public List<Pair<Double, Long>> getResult() {
+        return result;
     }
 
     protected void register(Selector selector, ServerSocketChannel serverSocketChannel) throws IOException {

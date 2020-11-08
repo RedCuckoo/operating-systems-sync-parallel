@@ -7,40 +7,38 @@ import java.nio.channels.SocketChannel;
 
 public abstract class Client {
     private SocketChannel clientSocketChannel;
-    private ByteBuffer buffer;
+    private int port;
 
     public Client(String hostname, int port) {
+        this.port = port;
+
         try {
             clientSocketChannel = SocketChannel.open(new InetSocketAddress(hostname, port));
-            buffer = ByteBuffer.allocate(1024);
             System.out.println("Connected to the server");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-
-    public void stop() {
-        try {
-            clientSocketChannel.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        buffer = null;
-    }
-
     public void waitServer() throws IOException, InterruptedException {
-        ByteBuffer inputBuffer = ByteBuffer.allocate(1024);
+        ByteBuffer inputBuffer = ByteBuffer.allocate(Integer.BYTES + Double.BYTES + Long.BYTES);
 
-        clientSocketChannel.read(inputBuffer);
+        while (clientSocketChannel.read(inputBuffer) == 0) {};
+
         inputBuffer.rewind();
         int x = inputBuffer.getInt();
 
         inputBuffer.clear();
 
+        final long start = System.currentTimeMillis();
         double result = getResult(x);
+        final long end = System.currentTimeMillis();
+
+        inputBuffer.putInt(port);
         inputBuffer.putDouble(result);
+        inputBuffer.putLong(end - start);
         inputBuffer.rewind();
+
         clientSocketChannel.write(inputBuffer);
     }
 

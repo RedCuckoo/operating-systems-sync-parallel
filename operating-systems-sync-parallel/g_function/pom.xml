@@ -25,6 +25,11 @@
             <version>1.0</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>spos.lab1</groupId>
+            <artifactId>demo</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -3,12 +3,16 @@ package com.momotenko.os.lab1;
 import spos.lab1.demo.DoubleOps;
 
 import java.io.IOException;
-import java.util.Scanner;
 
 public class FunctionF extends Client {
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException {
         FunctionF f = new FunctionF("localhost", 4040);
-        f.waitServer();
+
+        try {
+            f.waitServer();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public FunctionF(String hostname, int port) {
