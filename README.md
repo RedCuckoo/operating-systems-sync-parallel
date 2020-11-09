@@ -31,11 +31,11 @@ How to install:
 7) run the programm 
 	a) with computation cancellation
 
-		`java -cp full-application-1.0.jar com.momotenko.os.lab1.manager.ServerManagerAbstract computation_cancellation.ServerManager`
+		java -cp full-application-1.0.jar com.momotenko.os.lab1.manager.ServerManagerAbstract computation_cancellation.ServerManager
 	
 	b) with periodic user prompt
 
-		`java -cp full-application-1.0.jar com.momotenko.os.lab1.manager.ServerManagerAbstract periodic_prompt.ServerManager`
+		java -cp full-application-1.0.jar com.momotenko.os.lab1.manager.ServerManagerAbstract periodic_prompt.ServerManager
 
 Result:
 | x | F | F time | G | G time | Result |
