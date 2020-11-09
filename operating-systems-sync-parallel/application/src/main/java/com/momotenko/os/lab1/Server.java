@@ -190,8 +190,7 @@ public class Server {
 
     protected void register(Selector selector, ServerSocketChannel serverSocketChannel) throws IOException {
         SocketChannel client = serverSocketChannel.accept();
-        System.out.println("Client connected");
-        client.configureBlocking(false);
+       client.configureBlocking(false);
         client.register(selector, SelectionKey.OP_WRITE);
     }
 }

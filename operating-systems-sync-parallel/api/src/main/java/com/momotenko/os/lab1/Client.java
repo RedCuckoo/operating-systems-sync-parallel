@@ -14,7 +14,6 @@ public abstract class Client {
 
         try {
             clientSocketChannel = SocketChannel.open(new InetSocketAddress(hostname, port));
-            System.out.println("Connected to the server");
         } catch (IOException e) {
             e.printStackTrace();
         }

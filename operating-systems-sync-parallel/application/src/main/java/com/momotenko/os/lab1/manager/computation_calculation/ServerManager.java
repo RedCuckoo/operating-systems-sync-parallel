@@ -1,4 +1,4 @@
-package com.momotenko.os.lab1.manager;
+package com.momotenko.os.lab1.manager.computation_calculation;
 
 import com.momotenko.os.lab1.Server;
 import com.momotenko.os.lab1.utils.Pair;
@@ -54,51 +54,39 @@ public class ServerManager {
             System.out.println("Finished calculating");
         } else {
             System.out.println("Calculation was interrupted\n" +
-                    "What was calculated");
+                    "What wasn't calculated:");
         }
 
         if (fValue == null && gValue == null) {
-            System.out.println("Nothing calculated");
+            System.out.println("Nothing was calculated");
             return;
         }
 
         if (fValue == null && gValue != null) {
-
-            System.out.println((finished ? "f: stop calculating because g returned zero\n"
-                    : "f: stop calculation due to cancellation\n") +
-                    generateValue(false, gValue));
-
             if (finished) {
                 printResult(0.0);
+            } else {
+                System.out.println("F function wasn't calculated");
             }
 
             return;
         }
 
         if (fValue != null && gValue == null) {
-            System.out.println(generateValue(true, fValue) + "\n" +
-                    (finished ? "g: stop calculating because f is null" :
-                            "g: stop calculating due to cancellation"));
-
             if (finished) {
                 printResult(0.0);
+            } else {
+                System.out.println("G function wasn't calculated");
             }
 
             return;
         }
-
-        System.out.println(generateValue(true, fValue) + "\n" +
-                generateValue(false, gValue));
 
         printResult(fValue.getLeft() * gValue.getLeft());
     }
 
     private void printResult(Double result) {
         System.out.println("Result: " + result);
-    }
-
-    private String generateValue(boolean f, Pair<Double, Long> value) {
-        return (f ? "f" : "g") + ": " + value.getLeft() + " in " + value.getRight() + "ms";
     }
 
     private void stopExecHooked() {
