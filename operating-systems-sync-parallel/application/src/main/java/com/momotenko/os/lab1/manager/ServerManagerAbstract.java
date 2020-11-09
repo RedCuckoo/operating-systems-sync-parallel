@@ -1,33 +1,40 @@
-package com.momotenko.os.lab1.manager.computation_calculation;
+package com.momotenko.os.lab1.manager;
 
 import com.momotenko.os.lab1.Server;
 import com.momotenko.os.lab1.utils.Pair;
 
-import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Scanner;
 
+public abstract class ServerManagerAbstract {
+    private static Class<? extends ServerManagerAbstract> classInstance;
+    protected Server server;
+    protected String hostname;
+    protected int portF;
+    protected int portG;
 
-public class ServerManager {
-    private Server server;
-    private String hostname;
-    private int portF;
-    private int portG;
+    protected List<Pair<Double, Long>> results;
 
-    private List<Pair<Double, Long>> results;
-
-    public static void main(String[] argc) throws IOException {
+    public static void main(String[] argc) throws IllegalAccessException, InvocationTargetException, InstantiationException, ClassNotFoundException {
         Scanner input = new Scanner(System.in);
         System.out.println("Enter x: ");
         int x = input.nextInt();
 
-        ServerManager manager = new ServerManager("localhost", 4040, 4050);
+        if (argc.length == 0){
+            System.out.println("Wrong input, please provide class name");
+        }
+        else{
+            classInstance = (Class<? extends ServerManagerAbstract>) Class.forName("com.momotenko.os.lab1.manager."+argc[0]);
+        }
+
+        ServerManagerAbstract manager = (ServerManagerAbstract) classInstance.getConstructors()[0].newInstance("localhost", 4040, 4050);
         manager.run(x);
 
         Runtime.getRuntime().halt(0);
     }
 
-    public ServerManager(String hostname, int portF, int portG) throws IOException {
+    public ServerManagerAbstract(String hostname, int portF, int portG) {
         this.hostname = hostname;
         this.portF = portF;
         this.portG = portG;
@@ -35,16 +42,9 @@ public class ServerManager {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> stopExecHooked()));
     }
 
-    public void run(int x) {
-        server = new Server(hostname, portF, portG);
-        server.run(x);
+    public abstract void run(int x);
 
-        processResults(true);
-
-        return;
-    }
-
-    private void processResults(boolean finished) {
+    protected void processResults(boolean finished) {
         results = server.getResult();
 
         Pair<Double, Long> fValue = results.get(0);
