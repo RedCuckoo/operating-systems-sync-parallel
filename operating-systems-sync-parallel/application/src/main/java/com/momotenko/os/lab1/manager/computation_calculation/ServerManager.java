@@ -21,8 +21,8 @@ public class ServerManager {
         System.out.println("Enter x: ");
         int x = input.nextInt();
 
-        ServerManager controller = new ServerManager("localhost", 4040, 4050);
-        controller.run(x);
+        ServerManager manager = new ServerManager("localhost", 4040, 4050);
+        manager.run(x);
 
         Runtime.getRuntime().halt(0);
     }
