@@ -26,7 +26,7 @@ How to install:
 
 6) navigate to created jar folder
 
-	`cd operating-systems-sync-parallel/application/target`
+	`cd application/target`
 
 7) run the programm 
 	a) with computation cancellation
