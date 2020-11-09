@@ -6,31 +6,36 @@ Laboratory work for subject "Operating systems". Tasks on synchronization and pa
 How to install:
 1) clone repository on your computer
 
-`git clone https://github.com/RedCuckoo/operating-systems-sync-parallel.git`
+	`git clone https://github.com/RedCuckoo/operating-systems-sync-parallel.git`
 
 2) navigate to the folder
 
-`cd operating-systems-sync-parallel`
+	`cd operating-systems-sync-parallel`
 
 3) add lab1.jar to your local maven repository
 
-`mvn install:install-file -Dfile=lab1 -DgroupId=spos.lab1 -DartifactId=demo -Dversion=1.0 -Dpackaging=jar`
+	`mvn install:install-file -Dfile=lab1 -DgroupId=spos.lab1 -DartifactId=demo -Dversion=1.0 -Dpackaging=jar`
 
 4) navigate to project root folder
 
-`cd operating-systems-sync-parallel`
+	`cd operating-systems-sync-parallel`
 
 5) run maven install
 
-`mvn install`
+	`mvn install`
 
 6) navigate to created jar folder
 
-`cd operating-systems-sync-parallel/application/target`
+	`cd operating-systems-sync-parallel/application/target`
 
-7) run the programm
+7) run the programm 
+	a) with computation cancellation
 
-`java -cp full-application-1.0.jar com.momotenko.os.lab1.manager.ServerManager`
+		`java -cp full-application-1.0.jar com.momotenko.os.lab1.manager.ServerManagerAbstract computation_cancellation.ServerManager`
+	
+	b) with periodic user prompt
+
+		`java -cp full-application-1.0.jar com.momotenko.os.lab1.manager.ServerManagerAbstract periodic_prompt.ServerManager`
 
 Result:
 | x | F | F time | G | G time | Result |
