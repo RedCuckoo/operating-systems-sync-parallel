@@ -1,26 +1,29 @@
 package com.momotenko.os.lab1;
 
-import com.momotenko.os.lab1.utils.Pair;
-
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.util.*;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 public class Server {
     private Selector selector;
     private ServerSocketChannel serverSocketChannelF;
     private ServerSocketChannel serverSocketChannelG;
-    Pair<InetSocketAddress, Boolean> fWrote;
-    Pair<InetSocketAddress, Boolean> gWrote;
+    SimpleEntry<InetSocketAddress, Boolean> fWrote;
+    SimpleEntry<InetSocketAddress, Boolean> gWrote;
 
     private ByteBuffer buffer;
     private SelectionKey key;
 
     int count;
 
-    private List<Pair<Double, Long>> result;
+    private List<SimpleEntry<Double, Long>> result;
 
     Process compileF;
     Process compileG;
@@ -33,14 +36,14 @@ public class Server {
         try {
             selector = Selector.open();
             serverSocketChannelF = ServerSocketChannel.open();
-            fWrote = new Pair<>(new InetSocketAddress(hostname, portF), false);
-            serverSocketChannelF.bind(fWrote.getLeft());
+            fWrote = new SimpleEntry<>(new InetSocketAddress(hostname, portF), false);
+            serverSocketChannelF.bind(fWrote.getKey());
             serverSocketChannelF.configureBlocking(false);
             serverSocketChannelF.register(selector, SelectionKey.OP_ACCEPT);
 
             serverSocketChannelG = ServerSocketChannel.open();
-            gWrote = new Pair<>(new InetSocketAddress(hostname, portG), false);
-            serverSocketChannelG.bind(gWrote.getLeft());
+            gWrote = new SimpleEntry<>(new InetSocketAddress(hostname, portG), false);
+            serverSocketChannelG.bind(gWrote.getKey());
             serverSocketChannelG.configureBlocking(false);
             serverSocketChannelG.register(selector, SelectionKey.OP_ACCEPT);
 
@@ -115,19 +118,19 @@ public class Server {
                     if (key.isWritable()) {
                         SocketChannel client = (SocketChannel) key.channel();
 
-                        if (!fWrote.getRight() && fWrote.getLeft().equals(client.getLocalAddress())) {
+                        if (!fWrote.getValue() && fWrote.getKey().equals(client.getLocalAddress())) {
                             sendX(client, x);
-                            fWrote.setRight(true);
+                            fWrote.setValue(true);
                         }
 
-                        if (!gWrote.getRight() && gWrote.getLeft().equals(client.getLocalAddress())) {
+                        if (!gWrote.getValue() && gWrote.getKey().equals(client.getLocalAddress())) {
                             sendX(client, x);
-                            gWrote.setRight(true);
+                            gWrote.setValue(true);
                         }
 
                         boolean f = true;
 
-                        if (gWrote.getLeft()
+                        if (gWrote.getKey()
                                 .equals(((SocketChannel) key.channel()).getLocalAddress())) {
                             f = false;
                         }
@@ -169,9 +172,9 @@ public class Server {
             ++count;
 
             if (f) {
-                result.set(0, new Pair(res, time));
+                result.set(0, new SimpleEntry(res, time));
             } else {
-                result.set(1, new Pair(res, time));
+                result.set(1, new SimpleEntry(res, time));
             }
 
             key.channel().close();
@@ -184,7 +187,7 @@ public class Server {
         return true;
     }
 
-    public List<Pair<Double, Long>> getResult() {
+    public List<SimpleEntry<Double, Long>> getResult() {
         return result;
     }
 

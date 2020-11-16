@@ -1,9 +1,9 @@
 package com.momotenko.os.lab1.manager;
 
 import com.momotenko.os.lab1.Server;
-import com.momotenko.os.lab1.utils.Pair;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.List;
 import java.util.Scanner;
 
@@ -14,7 +14,7 @@ public abstract class ServerManagerAbstract {
     protected int portF;
     protected int portG;
 
-    protected List<Pair<Double, Long>> results;
+    protected List<SimpleEntry<Double, Long>> results;
 
     public static void main(String[] argc) throws IllegalAccessException, InvocationTargetException, InstantiationException, ClassNotFoundException {
         Scanner input = new Scanner(System.in);
@@ -47,8 +47,8 @@ public abstract class ServerManagerAbstract {
     protected void processResults(boolean finished) {
         results = server.getResult();
 
-        Pair<Double, Long> fValue = results.get(0);
-        Pair<Double, Long> gValue = results.get(1);
+        SimpleEntry<Double, Long> fValue = results.get(0);
+        SimpleEntry<Double, Long> gValue = results.get(1);
 
         if (finished) {
             System.out.println("Finished calculating");
@@ -82,7 +82,7 @@ public abstract class ServerManagerAbstract {
             return;
         }
 
-        printResult(fValue.getLeft() * gValue.getLeft());
+        printResult(fValue.getKey() * gValue.getKey());
     }
 
     private void printResult(Double result) {
