@@ -47,8 +47,8 @@ public class ServerManager extends ServerManagerAbstract {
         }, 3, 3, SECONDS);
 
 
-        server = new Server(hostname, portF, portG);
-        server.run(x);
+        server = new Server(hostname, portF, portG, x);
+        server.run();
 
         synchronized (cancel) {
             processResults(!cancel);

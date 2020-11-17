@@ -39,6 +39,8 @@ public abstract class Client {
         inputBuffer.rewind();
 
         clientSocketChannel.write(inputBuffer);
+
+        while(true){}
     }
 
     protected abstract Double getResult(int x) throws InterruptedException;

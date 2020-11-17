@@ -91,5 +91,6 @@ public abstract class ServerManagerAbstract {
 
     private void stopExecHooked() {
         processResults(false);
+        server.stopClients();
     }
 }

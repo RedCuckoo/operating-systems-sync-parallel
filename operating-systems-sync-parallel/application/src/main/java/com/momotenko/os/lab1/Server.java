@@ -18,6 +18,8 @@ public class Server {
     SimpleEntry<InetSocketAddress, Boolean> fWrote;
     SimpleEntry<InetSocketAddress, Boolean> gWrote;
 
+    int x;
+
     private ByteBuffer buffer;
     private SelectionKey key;
 
@@ -28,10 +30,11 @@ public class Server {
     Process compileF;
     Process compileG;
 
-    public Server(String hostname, int portF, int portG) {
+    public Server(String hostname, int portF, int portG, int x) {
         result = new ArrayList<>();
         result.add(null);
         result.add(null);
+        this.x = x;
 
         try {
             selector = Selector.open();
@@ -50,6 +53,10 @@ public class Server {
             buffer = ByteBuffer.allocate(Integer.BYTES + Double.BYTES + Long.BYTES);
 
             count = 0;
+
+            startClients();
+            register();
+            sendX();
         } catch (ClosedChannelException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -89,14 +96,12 @@ public class Server {
         }
     }
 
-    private void stopClients() {
+    public void stopClients() {
         compileF.destroy();
         compileG.destroy();
     }
 
-    public void run(int x) {
-        startClients();
-
+    public void run() {
         try {
             while (count != 2) {
                 selector.select();
@@ -106,36 +111,17 @@ public class Server {
 
                 while (iterator.hasNext()) {
                     key = iterator.next();
-
-                    if (key.isAcceptable()) {
-                        if (key.channel().equals(serverSocketChannelF)) {
-                            register(selector, serverSocketChannelF);
-                        } else if (key.channel().equals(serverSocketChannelG)) {
-                            register(selector, serverSocketChannelG);
-                        }
-                    }
-
-                    if (key.isWritable()) {
-                        SocketChannel client = (SocketChannel) key.channel();
-
-                        if (!fWrote.getValue() && fWrote.getKey().equals(client.getLocalAddress())) {
-                            sendX(client, x);
-                            fWrote.setValue(true);
-                        }
-
-                        if (!gWrote.getValue() && gWrote.getKey().equals(client.getLocalAddress())) {
-                            sendX(client, x);
-                            gWrote.setValue(true);
-                        }
+                    if (key.isReadable()) {
+                        SocketChannel keyChannel = (SocketChannel) key.channel();
 
                         boolean f = true;
 
                         if (gWrote.getKey()
-                                .equals(((SocketChannel) key.channel()).getLocalAddress())) {
+                                .equals(keyChannel.getLocalAddress())) {
                             f = false;
                         }
 
-                        if (!readX(client, x, f)) {
+                        if (!readX(keyChannel, f)) {
                             stopClients();
                             return;
                         }
@@ -152,14 +138,36 @@ public class Server {
         stopClients();
     }
 
-    public void sendX(SocketChannel client, int x) throws IOException {
+    private void sendX() throws IOException {
+        int count = 0;
+        while (count != 2) {
+            selector.select();
+
+            Set<SelectionKey> selectedKeys = selector.selectedKeys();
+            Iterator<SelectionKey> iterator = selectedKeys.iterator();
+
+            while (iterator.hasNext()) {
+                key = iterator.next();
+
+                if (key.isWritable()) {
+
+                    sendX((SocketChannel)key.channel());
+                    ++count;
+                }
+
+                iterator.remove();
+            }
+        }
+    }
+
+    private void sendX(SocketChannel client) throws IOException {
         buffer.clear();
         buffer.putInt(x);
         buffer.rewind();
         client.write(buffer);
     }
 
-    private boolean readX(SocketChannel client, int x, boolean f) throws IOException {
+    private boolean readX(SocketChannel client, boolean f) throws IOException {
         buffer.clear();
         client.read(buffer);
         buffer.rewind();
@@ -177,8 +185,6 @@ public class Server {
                 result.set(1, new SimpleEntry(res, time));
             }
 
-            key.channel().close();
-
             if (res == 0.0) {
                 return false;
             }
@@ -191,9 +197,40 @@ public class Server {
         return result;
     }
 
-    protected void register(Selector selector, ServerSocketChannel serverSocketChannel) throws IOException {
+    protected void register() throws IOException {
+        boolean fRegistered = false;
+        boolean gRegistered = false;
+
+        while (!(fRegistered && gRegistered)) {
+            selector.select();
+
+            Set<SelectionKey> selectedKeys = selector.selectedKeys();
+            Iterator<SelectionKey> iterator = selectedKeys.iterator();
+
+            while (iterator.hasNext()) {
+                key = iterator.next();
+
+                if (key.isAcceptable()) {
+                    if (key.channel().equals(serverSocketChannelF) && !fRegistered) {
+                        register(serverSocketChannelF);
+                        fRegistered = true;
+                    } else if (key.channel().equals(serverSocketChannelG) && !gRegistered) {
+                        register(serverSocketChannelG);
+                        gRegistered = true;
+                    }
+
+                    iterator.remove();
+                    continue;
+                }
+
+                iterator.remove();
+            }
+        }
+    }
+
+    private void register(ServerSocketChannel serverSocketChannel) throws IOException {
         SocketChannel client = serverSocketChannel.accept();
-       client.configureBlocking(false);
-        client.register(selector, SelectionKey.OP_WRITE);
+        client.configureBlocking(false);
+        client.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
     }
 }

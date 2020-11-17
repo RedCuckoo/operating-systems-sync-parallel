@@ -11,8 +11,8 @@ public class ServerManager extends ServerManagerAbstract {
 
     @Override
     public void run(int x) {
-        server = new Server(hostname, portF, portG);
-        server.run(x);
+        server = new Server(hostname, portF, portG, x);
+        server.run();
 
         processResults(true);
 
