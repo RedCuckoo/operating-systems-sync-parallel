@@ -14,7 +14,7 @@ How to install:
 
 3) add lab1.jar to your local maven repository
 
-	`mvn install:install-file -Dfile=lab1 -DgroupId=spos.lab1 -DartifactId=demo -Dversion=1.0 -Dpackaging=jar`
+	`mvn install:install-file -Dfile=lab1.jar -DgroupId=spos.lab1 -DartifactId=demo -Dversion=1.0 -Dpackaging=jar`
 
 4) navigate to project root folder
 
